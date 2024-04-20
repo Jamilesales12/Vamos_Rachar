@@ -1,5 +1,6 @@
 package com.example.constraintlayout
 
+import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.speech.tts.TextToSpeech
@@ -8,75 +9,96 @@ import android.text.TextWatcher
 import android.util.Log
 import android.view.View
 import android.widget.EditText
+import android.widget.TextView
+import com.google.android.material.floatingactionbutton.FloatingActionButton
+import java.text.DecimalFormat
+import java.text.NumberFormat
 import java.util.*
 
-class MainActivity : AppCompatActivity() , TextWatcher, TextToSpeech.OnInitListener {
+class MainActivity : AppCompatActivity(){
     private lateinit var tts: TextToSpeech
-    private lateinit var edtConta: EditText
-    private var ttsSucess: Boolean = false;
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        edtConta = findViewById<EditText>(R.id.edtConta)
-        edtConta.addTextChangedListener(this)
-        // Initialize TTS engine
-        tts = TextToSpeech(this, this)
 
-    }
+        //pegar id
+        val edtConta: EditText = findViewById(R.id.edtConta)
+        val edtpeople: EditText = findViewById(R.id.edtpeople)
+        val textTotal: TextView = findViewById(R.id.textTotal)
+        val btFalar: FloatingActionButton = findViewById(R.id.btFalar)
+        val floatingActionButton: FloatingActionButton = findViewById(R.id.floatingActionButton)
 
-    override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
-       Log.d("PDM24","Antes de mudar")
+      //calc
 
-    }
+        fun rachou(valor: Double?, pessoa: Int?){
+            var result: Double? = null
 
-    override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-        Log.d("PDM24","Mudando")
-    }
-
-    override fun afterTextChanged(s: Editable?) {
-        Log.d ("PDM24", "Depois de mudar")
-
-        val valor: Double
-
-        if(s.toString().length>0) {
-             valor = s.toString().toDouble()
-            Log.d("PDM24", "v: " + valor)
-        //    edtConta.setText("9")
-        }
-    }
-
-    fun clickFalar(v: View){
-        if (tts.isSpeaking) {
-            tts.stop()
-        }
-        if(ttsSucess) {
-            Log.d ("PDM23", tts.language.toString())
-            tts.speak("Oi Sumido", TextToSpeech.QUEUE_FLUSH, null, null)
-        }
-
-
-
-
-    }
-    override fun onDestroy() {
-            // Release TTS engine resources
-            tts.stop()
-            tts.shutdown()
-            super.onDestroy()
-        }
-
-    override fun onInit(status: Int) {
-            if (status == TextToSpeech.SUCCESS) {
-                // TTS engine is initialized successfully
-                tts.language = Locale.getDefault()
-                ttsSucess=true
-                Log.d("PDM23","Sucesso na Inicialização")
+            if (valor != null && pessoa != null && pessoa!=0){
+                result = (valor/pessoa)
             } else {
-                // TTS engine failed to initialize
-                Log.e("PDM23", "Failed to initialize TTS engine.")
-                ttsSucess=false
+                result = 0.0
+            }
+
+            val formatter: NumberFormat = DecimalFormat("0.##")
+            textTotal.text = formatter.format(result)
+        }
+
+        //pra ficar calculando
+        edtConta.addTextChangedListener(object: TextWatcher {
+            override fun beforeTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {}
+            override fun onTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {}
+            override fun afterTextChanged(p0: Editable?) {
+                var valor = edtConta.text.toString().toDoubleOrNull()
+                var pessoa = edtpeople.text.toString().toDoubleOrNull()
+            }
+        })
+
+        edtpeople.addTextChangedListener(object: TextWatcher {
+            override fun beforeTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int){}
+            override fun onTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int){}
+            override fun afterTextChanged(p0: Editable?) {
+                var valor  = edtConta.text.toString().toDoubleOrNull()
+                var pessoa = edtpeople.text.toString().toIntOrNull()
+                rachou(valor,pessoa)
+            }
+        })
+
+        tts = TextToSpeech(applicationContext, TextToSpeech.OnInitListener { status ->
+            if (status != TextToSpeech.ERROR){
+                tts.setLanguage(Locale("pt","BR"))
+            }
+        })
+
+        //falar
+        btFalar.setOnClickListener{
+            val falar = textTotal.text.toString()
+            if(falar != null){
+                tts.speak(falar, TextToSpeech.QUEUE_FLUSH, null)
             }
         }
+
+        //compartilhar
+
+        floatingActionButton.setOnClickListener {
+            val comparti =
+                "O valor a ser rachado é: R$ " + textTotal.text.toString() + ". Valor total: R$ " + edtConta.text.toString() + " para " + edtpeople.text.toString() + "pessoas."
+            val intent = Intent()
+
+            intent.action = Intent.ACTION_SEND
+            intent.type = "text/plain"
+            intent.putExtra(Intent.EXTRA_TEXT, comparti)
+            startActivity(Intent.createChooser(intent, "Compartilhar"))
+        }
+    }
+
+
+
+
+
+
+
+
 
 
 }
